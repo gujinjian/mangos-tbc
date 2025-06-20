@@ -29,6 +29,7 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (6467,'spell_unarmed_woodcutter'),
 (7054,'spell_forsaken_skill'),
 (7131,'spell_illusion_passive'),
+(7979,'spell_compact_harvest_reaper'),
 (8555,'spell_left_for_dead'),
 (8603,'spell_tribal_death'),
 (8655,'spell_tribal_death'),
@@ -52,6 +53,7 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (11889,'spell_capture_mountain_giant'),
 (11610,'spell_gammerita_turtle_camera'),
 (12479,'spell_hex_of_jammalan'),
+(20786,'spell_destroy_karangs_banner'),
 (12890,'spell_deep_slumber'),
 (13258,'spell_summon_goblin_bomb'),
 (16380,'spell_greater_invisibility_mob'),
@@ -65,6 +67,7 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (20038,'spell_explosion_razorgore'),
 (21651,'spell_opening_capping'),
 (22858,'spell_retaliation_creature'),
+(22876,'spell_summon_netherwalker'),
 (23134,'spell_goblin_bomb'),
 (23226,'spell_ritual_candle_aura'),
 (24228,'spell_arlokk_vanish'),
@@ -663,6 +666,7 @@ INSERT INTO spell_scripts(Id, ScriptName) VALUES
 (30434,'spell_gameobject_call_for_help_on_usage'), -- Elemental Seaforium Charge
 (34799,'spell_arcane_devastation'),
 (34145,'spell_ritual_of_souls_dummy'),
+(34219,'spell_recharging_battery'),
 (32173,'spell_entangling_roots');
 
 -- Wotlk

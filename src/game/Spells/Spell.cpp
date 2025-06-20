@@ -46,6 +46,7 @@
 #include "MotionGenerators/PathFinder.h"
 #include "Spells/Scripts/SpellScript.h"
 #include "Entities/ObjectGuid.h"
+#include "Spells/SpellStacking.h"
 
 #ifdef ENABLE_PLAYERBOTS
 #include "playerbot/PlayerbotAI.h"
@@ -3614,14 +3615,6 @@ void Spell::_handle_finish_phase()
     // spell log
     if (m_needSpellLog)
         m_spellLog.SendToSet();
-
-    if (m_caster && m_caster->m_extraAttacks && IsSpellHaveEffect(m_spellInfo, SPELL_EFFECT_ADD_EXTRA_ATTACKS))
-    {
-        if (Unit* target = m_caster->GetVictim())
-            m_caster->DoExtraAttacks(target);
-        else
-            m_caster->m_extraAttacks = 0;
-    }
 }
 
 void Spell::ProcessAOECaps()
@@ -5150,10 +5143,10 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                     if (m_trueCaster->GetObjectGuid() != existing->GetCasterGuid())
                     {
-                        if (sSpellMgr.IsSpellStackableWithSpellForDifferentCasters(m_spellInfo, existingSpell))
+                        if (sSpellStacker.IsSpellStackableWithSpellForDifferentCasters(m_spellInfo, existingSpell, sSpellMgr.IsSpellAnotherRankOfSpell(m_spellInfo->Id, existingSpell->Id), nullptr))
                             continue;
                     }
-                    else if (sSpellMgr.IsSpellStackableWithSpell(m_spellInfo, existingSpell))
+                    else if (sSpellStacker.IsSpellStackableWithSpell(m_spellInfo, existingSpell, nullptr))
                         continue;
 
                     if (!computed)
@@ -7662,40 +7655,16 @@ SpellCastResult Spell::CanOpenLock(SpellEffectIndex effIndex, uint32 lockId, Ski
                 SkillType tempSkillId = SkillByLockType(LockType(lockInfo->Index[j]));
                 skillId = tempSkillId;
 
-                bool oldCalc = true;
-                if (tempSkillId == SKILL_NONE) // these must not be carried over to the reference variable - unless more research comes up
-                {
-                    SkillLineAbilityMapBounds bounds = sSpellMgr.GetSkillLineAbilityMapBoundsBySpellId(m_spellInfo->Id);
-                    if (bounds.first != bounds.second)
-                    {
-                        SkillLineAbilityEntry const* skillInfo = bounds.first->second;
-                        tempSkillId = SkillType(skillInfo->skillId);
-                        oldCalc = false;
-                    }
-                }
+                skillValue = CalculateSpellEffectValue(effIndex, nullptr);
+                reqSkillValue = lockInfo->Skill[j];
 
                 if (tempSkillId != SKILL_NONE)
                 {
-                    uint32 spellSkillBonus = 0;
-                    if (oldCalc) // still correct but not usable for spell skill ids
-                    {
-                        // skill bonus provided by casting spell (mostly item spells)
-                        // add the damage modifier from the spell casted (cheat lock / skeleton key etc.) (use m_currentBasePoints, CalculateDamage returns wrong value)
-                        uint32 spellSkillBonus = uint32(m_currentBasePoints[effIndex]);
-                        reqSkillValue = lockInfo->Skill[j];
-
-                        // castitem check: rogue using skeleton keys. the skill values should not be added in this case.
-                        skillValue = m_CastItem || !m_trueCaster->IsPlayer() ?
-                            0 : static_cast<Player*>(m_trueCaster)->GetSkillValue(tempSkillId);
-
-                        skillValue += spellSkillBonus;
-                    }
-                    else if (lockInfo->Index[j] == LOCKTYPE_DISARM_TRAP)
+                    if (lockInfo->Index[j] == LOCKTYPE_DISARM_TRAP)
                     {
                         reqSkillValue = INT32_MAX;
                         if (GameObject* go = m_targets.getGOTarget())
                             reqSkillValue = go->GetLevel() * 5;
-                        skillValue = CalculateSpellEffectValue(effIndex, nullptr);
                     }
 
                     if (skillValue < reqSkillValue)

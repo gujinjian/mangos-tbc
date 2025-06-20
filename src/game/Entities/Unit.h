@@ -1242,7 +1242,8 @@ class Unit : public WorldObject
          */
         bool CanReachWithMeleeAttack(Unit const* pVictim, float flat_mod = 0.0f) const;
         uint32 m_extraAttacks;
-        void DoExtraAttacks(Unit* pVictim);
+        ObjectGuid m_extraAttackGuid;
+        void DoExtraAttacks(Unit* victim);
 
         bool IsAttackedBy(Unit* attacker) const
         {
@@ -2469,7 +2470,7 @@ class Unit : public WorldObject
         void UpdateAllowedPositionZ(float x, float y, float& z, Map* atMap = nullptr) const override;
         void AdjustZForCollision(float x, float y, float& z, float halfHeight) const override;
 
-        virtual uint32 GetSpellRank(SpellEntry const* spellInfo);
+        virtual uint32 GetSpellRank(SpellEntry const* spellInfo) const;
 
         Player* GetNextRandomRaidMember(float radius, AuraType noAuraType);
 

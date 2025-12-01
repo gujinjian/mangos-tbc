@@ -496,6 +496,8 @@ Spell::Spell(WorldObject* caster, SpellEntry const* info, uint32 triggeredFlags,
 
     m_overrideSpeed = false;
 
+    m_helpfulThreatCoeff = 1.f;
+
     m_ignoreRoot = IsIgnoreRootSpell(m_spellInfo);
 
     OnInit();
@@ -1592,7 +1594,7 @@ void Spell::DoAllEffectOnTarget(GOTargetInfo* target)
 
     // cast at creature (or GO) quest objectives update at successful cast finished (+channel finished)
     // ignore autorepeat/melee casts for speed (not exist quest for spells (hm... )
-    if (!IsAutoRepeat() && !IsNextMeleeSwingSpell(m_spellInfo) && !IsChannelActive() && m_caster)
+    if (!IsAutoRepeat() && !IsNextMeleeSwingSpell(m_spellInfo) && !IsChannelActive())
     {
         if (Player* p = m_caster->GetBeneficiaryPlayer())
             p->RewardPlayerAndGroupAtCast(go, m_spellInfo->Id);
@@ -4551,7 +4553,7 @@ void Spell::TakeCastItem()
         if (m_CastItem)
             m_CastItem->SetUsedInSpell(false);
         uint32 count = 1;
-        static_cast<Player*>(m_caster)->DestroyItemCount(m_CastItem, count, true);
+        static_cast<Player*>(m_caster)->DestroyItemCount(*m_CastItem, count, true);
 
         // prevent crash at access to deleted m_targets.getItemTarget
         ClearCastItem();
@@ -4607,7 +4609,7 @@ void Spell::TakeAmmo() const
             {
                 // decrease items amount for stackable throw weapon
                 uint32 count = 1;
-                player->DestroyItemCount(pItem, count, true);
+                player->DestroyItemCount(*pItem, count, true);
             }
         }
         else if (uint32 ammo = player->GetUInt32Value(PLAYER_AMMO_ID))
@@ -4703,7 +4705,8 @@ void Spell::HandleThreatSpells()
     }
 
     // since 2.0.1 threat from positive effects also is distributed among all targets, so the overall caused threat is at most the defined bonus
-    threat /= m_UniqueTargetInfo.size();
+    if (positive)
+        threat /= m_UniqueTargetInfo.size();
 
     for (TargetList::const_iterator ihit = m_UniqueTargetInfo.begin(); ihit != m_UniqueTargetInfo.end(); ++ihit)
     {
@@ -4717,7 +4720,7 @@ void Spell::HandleThreatSpells()
         // positive spells distribute threat among all units that are in combat with target, like healing
         if (positive)
         {
-            target->getHostileRefManager().threatAssist(affectiveCaster, threat, m_spellInfo, false, true);
+            target->getHostileRefManager().threatAssist(affectiveCaster, threat * m_helpfulThreatCoeff, m_spellInfo, false, true);
         }
         // for negative spells threat gets distributed among affected targets
         else
@@ -5046,7 +5049,7 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                 if (m_spellInfo->HasAttribute(SPELL_ATTR_EX5_ALWAYS_LINE_OF_SIGHT) ||
                     (!IsIgnoreLosSpellCast(m_spellInfo) && !m_IsTriggeredSpell))
-                    if (!m_trueCaster->IsWithinLOSInMap(target, true))
+                    if (!target->IgnoreLosWhenCastingOnMe() && !m_trueCaster->IsWithinLOSInMap(target, true))
                         return SPELL_FAILED_LINE_OF_SIGHT;
 
                 if (m_trueCaster->IsPlayer())
@@ -7403,12 +7406,12 @@ bool Spell::CheckTarget(Unit* target, SpellEffectIndex eff, bool targetB, CheckE
                                 if (m_spellInfo->EffectImplicitTargetA[eff] == TARGET_LOCATION_CHANNEL_TARGET_DEST)
                                 {
                                     if (DynamicObject* dynObj = m_caster->GetDynObject(m_triggeredByAuraSpell ? m_triggeredByAuraSpell->Id : m_spellInfo->Id))
-                                        if (!target->IsWithinLOSInMap(dynObj, true))
+                                        if (!target->IgnoreLosWhenCastingOnMe() && !target->IsWithinLOSInMap(dynObj, true))
                                             return false;
                                 }
                                 else if (WorldObject* caster = GetCastingObject())
                                 {
-                                    if (!target->IsWithinLOSInMap(caster, true))
+                                    if (!target->IgnoreLosWhenCastingOnMe() && !target->IsWithinLOSInMap(caster, true))
                                         return false;
                                 }
                             }
@@ -8163,7 +8166,7 @@ void Spell::FilterTargetMap(UnitList& filterUnitList, SpellTargetFilterScheme sc
                 if (prev->GetDistance(*next, true, DIST_CALC_NONE) > m_jumpRadius * m_jumpRadius)
                     break;
 
-                if (!prev->IsWithinLOSInMap(*next, true))
+                if (!(*next)->IgnoreLosWhenCastingOnMe() && !prev->IsWithinLOSInMap(*next, true))
                 {
                     ++next;
                     continue;
@@ -8202,7 +8205,7 @@ void Spell::FilterTargetMap(UnitList& filterUnitList, SpellTargetFilterScheme sc
                     continue;
                 }
 
-                if (!prev->IsWithinLOSInMap(*next, true))
+                if (!(*next)->IgnoreLosWhenCastingOnMe() && !prev->IsWithinLOSInMap(*next, true))
                 {
                     ++next;
                     continue;

@@ -507,7 +507,7 @@ void UnitAI::CheckForHelp(Unit* who, Unit* me, float distance)
     if (!victim)
         return;
 
-    if (me->IsInCombat() || !me->CanCallForAssistance() || !who->CanCallForAssistance() || !me->CanCheckForHelp())
+    if (me->IsInCombat() || !me->CanCallForAssistance() || !who->CanCallForAssistance() || !me->CanCheckForHelp() || !who->CanCheckForHelp())
         return;
 
     // pulling happens once panic/retreating ends
@@ -535,7 +535,7 @@ void UnitAI::DetectOrAttack(Unit* who)
     if (m_unit->GetDistance(who, true, DIST_CALC_NONE) > attackRadius * attackRadius)
         return;
 
-    if (!m_unit->IsWithinLOSInMap(who, true))
+    if (!m_unit->IsEnemyCheckIgnoresLos() && !m_unit->IsWithinLOSInMap(who, true))
         return;
 
     if (!m_unit->GetVictim() && !m_unit->IsInCombat())

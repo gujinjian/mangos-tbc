@@ -360,7 +360,9 @@ enum PlayerFlags
 // used in (PLAYER_FIELD_BYTES, 0) byte values
 enum PlayerFieldByteFlags
 {
+    PLAYER_FIELD_BYTE_CONTROLLING_PET   = 0x01,
     PLAYER_FIELD_BYTE_TRACK_STEALTHED   = 0x02,
+    PLAYER_FIELD_BYTE_LOGGING_OUT       = 0x04,
     PLAYER_FIELD_BYTE_RELEASE_TIMER     = 0x08,             // Display time till auto release spirit
     PLAYER_FIELD_BYTE_NO_RELEASE_WINDOW = 0x10              // Display no "release spirit" window at all
 };
@@ -1175,7 +1177,7 @@ class Player : public Unit
         void RemoveItemDependentAurasAndCasts(Item* pItem);
         void DestroyItem(uint8 bag, uint8 slot, bool update);
         void DestroyItemCount(uint32 item, uint32 count, bool update, bool unequip_check = false, bool inBankAlso = false);
-        void DestroyItemCount(Item* pItem, uint32& count, bool update);
+        void DestroyItemCount(Item& item, uint32& count, bool update);
         void DestroyConjuredItems(bool update);
         void DestroyZoneLimitedItem(bool update, uint32 new_zone);
         void SplitItem(uint16 src, uint16 dst, uint32 count);
@@ -1860,6 +1862,8 @@ class Player : public Unit
 
         uint32 GetShieldBlockValue() const override;        // overwrite Unit version (virtual)
 
+        void SetPet(Unit* pet) override;
+
         void SetRegularAttackTime();
         void SetBaseModValue(BaseModGroup modGroup, BaseModType modType, float value) { m_auraBaseMod[modGroup][modType] = value; }
         void HandleBaseModValue(BaseModGroup modGroup, BaseModType modType, float amount, bool apply);
@@ -2080,6 +2084,8 @@ class Player : public Unit
         Unit* GetMover() const { return m_mover; }
         bool IsSelfMover() const { return m_mover == this; }// normal case for player not controlling other unit
 
+        bool SetStunnedByLogout(bool apply);
+
         ObjectGuid const& GetFarSightGuid() const { return GetGuidValue(PLAYER_FARSIGHT); }
 
         uint32 GetSaveTimer() const { return m_nextSave; }
@@ -2288,6 +2294,11 @@ class Player : public Unit
 
         std::pair<uint32, bool> GetLastData() { return std::make_pair(m_lastDbGuid, m_lastGameObject); }
         void SetLastData(uint32 dbGuid, bool gameobject) { m_lastDbGuid = dbGuid; m_lastGameObject = gameobject; }
+
+        int32 GetHighestAmmoMod() const { return m_highestAmmoMod; }
+        void SetHighestAmmoMod(int32 amount) { m_highestAmmoMod = amount; }
+
+        void UpdateRangedWeaponDependantAmmoHasteAura();
     protected:
         /*********************************************************/
         /***               BATTLEGROUND SYSTEM                 ***/
@@ -2469,6 +2480,7 @@ class Player : public Unit
         uint8 m_swingErrorMsg;
         float m_ammoDPSMin;
         float m_ammoDPSMax;
+        int32 m_highestAmmoMod;
 
         //////////////////// Rest System/////////////////////
         time_t time_inn_enter;
